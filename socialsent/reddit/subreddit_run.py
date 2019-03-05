@@ -23,11 +23,11 @@ def worker(proc_num, queue):
         try:
             name = queue.get(block=False)
         except Empty:
-            print proc_num, "Finished"
+            print(proc_num, "Finished")
             return
         if name + ".pkl" in os.listdir(POLARITIES):
             continue
-        print proc_num, "Running", name
+        print(proc_num, "Running", name)
         subredditgen.main(name)
         word_dict = util.load_pickle(DICTS.format(name))
         word_dict.filter_extremes(no_above=0.1, no_below=100)
@@ -48,7 +48,7 @@ if __name__ == "__main__":
         if i in valid_ids:
             name = line.split()[0]
             queue.put(name)
-    print queue.qsize()
+    print(queue.qsize())
     procs = [Process(target=worker, args=[i, queue]) for i in range(1)]
     for p in procs:
         p.start()

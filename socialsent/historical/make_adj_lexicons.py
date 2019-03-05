@@ -21,11 +21,11 @@ def worker(proc_num, queue):
         try:
             year = queue.get(block=False)
         except Empty:
-            print proc_num, "Finished"
+            print(proc_num, "Finished")
             return
         positive_seeds, negative_seeds = seeds.adj_seeds()
         year = str(year)
-        print proc_num, "On year", year
+        print(proc_num, "On year", year)
         words = vocab.pos_words(year, "jj")
         embed = create_representation("SVD", constants.COHA_EMBEDDINGS + year)
         embed_words = set(embed.iw)

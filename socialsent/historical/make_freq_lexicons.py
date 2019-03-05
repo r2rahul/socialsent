@@ -20,11 +20,11 @@ def worker(proc_num, queue):
         try:
             year = queue.get(block=False)
         except Empty:
-            print proc_num, "Finished"
+            print(proc_num, "Finished")
             return
         positive_seeds, negative_seeds = seeds.hist_seeds()
         year = str(year)
-        print proc_num, "On year", year
+        print(proc_num, "On year", year)
         words = vocab.top_words(year, 5100)
         stop_words = vocab.top_words(year, 100)
         words = words.difference(stop_words)

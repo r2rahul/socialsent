@@ -69,7 +69,7 @@ class Embedding:
         if w in self.wi:
             return self.m[self.wi[w], :]
         else:
-            print "OOV: ", w
+            print("OOV: ", w)
             return np.zeros(self.dim)
 
     def similarity(self, w1, w2):

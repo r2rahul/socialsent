@@ -39,7 +39,7 @@ class COHAWordGen(object):
         for j, fname in enumerate(os.listdir(self.data_dir)):
             if j % 2 == self.off:
                 continue
-            print fname
+            print(fname)
             for i, line in enumerate(open(os.path.join(self.data_dir, fname))):
                 word = line.split()[1].lower()
                 if word in index:

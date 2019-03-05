@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 from itertools import combinations, product
 from keras import backend as K
-from keras.models import Graph
-from keras.layers.core import Dense, Lambda
+from keras.layers import Input, Dense, Lambda
+from keras.models import Model
 from keras.optimizers import Adam, Optimizer
 from keras.regularizers import Regularizer
 from keras.constraints import Constraint
@@ -61,7 +61,7 @@ class SimpleSGD(Optimizer):
 
 class Orthogonal(Constraint):
     def __call__(self, p):
-        print "here"
+        print("here")
         u,s,v = T.nlinalg.svd(p)
         return K.dot(u,K.transpose(v))
 
@@ -125,28 +125,31 @@ class DatasetMinibatchIterator:
 def get_model(inputdim, outputdim, regularization_strength=0.01, lr=0.000, cosine=False, **kwargs):
     transformation = Dense(inputdim, init='identity',
                            W_constraint=Orthogonal())
+    input1 = Input(shape = (inputdim, ), name = 'embeddings1')
+    input2 = Input(shape = (inputdim, ), name = 'embeddings2')
 
-    model = Graph()
-    model.add_input(name='embeddings1', input_shape=(inputdim,))
-    model.add_input(name='embeddings2', input_shape=(inputdim,))
-    model.add_shared_node(transformation, name='transformation',
-                          inputs=['embeddings1', 'embeddings2'],
-                          outputs=['transformed1', 'transformed2'])
-    model.add_node(Lambda(lambda x: x[:, :outputdim]), input='transformed1', name='projected1')
-    model.add_node(Lambda(lambda x: -x[:, :outputdim]), input='transformed2', name='negprojected2')
+    transformation = Dense(inputdim, kernel_initializer='identity', kernel_constraint=Orthogonal())
+    transformed1 = transformation(input1, name='transformation')
+    transformed2 = transformation(input2, name='transformation')
+
+    projected1 = Lambda(lambda x: x[:, :outputdim], name='projected1')(transformed1)
+    negprojected2 = Lambda(Lambda(lambda x: -x[:, :outputdim]), name='negprojected2')(transformed2)
 
     if cosine:
-        model.add_node(Lambda(lambda x:  x / K.reshape(K.sqrt(K.sum(x * x, axis=1)), (x.shape[0], 1))),
-                       name='normalized1', input='projected1')
-        model.add_node(Lambda(lambda x:  x / K.reshape(K.sqrt(K.sum(x * x, axis=1)), (x.shape[0], 1))),
-                       name='negnormalized2', input='negprojected2')
-        model.add_node(Lambda(lambda x: K.reshape(K.sum(x, axis=1), (x.shape[0], 1))),
-                       name='distances', inputs=['normalized1', 'negnormalized2'], merge_mode='mul')
-    else:
-        model.add_node(Lambda(lambda x: K.reshape(K.sqrt(K.sum(x * x, axis=1)), (x.shape[0], 1))),
-                       name='distances', inputs=['projected1', 'negprojected2'], merge_mode='sum')
-
-    model.add_output(name='y', input='distances')
+        normalized1 = Lambda(lambda x:  x / K.reshape(K.sqrt(K.sum(x * x, axis=1)), (x.shape[0], 1)), name='normalized1')(projected1)
+        negnormalized2 = Lambda(lambda x:  x / K.reshape(K.sqrt(K.sum(x * x, axis=1)), (x.shape[0], 1)), name='negnormalized2')(negprojected2)
+        
+        l0 = Multiply(name='distances0')([normalized1, negnormalized2])
+        merge_l = Lambda(lambda x: K.reshape(K.sum(x, axis=1), (x.shape[0], 1)), name='distances')(l0)
+        
+    else:        
+        l0 = Add(name = 'distances0')([projected1, negprojected2])
+        merge_l = Lambda(lambda x: K.reshape(K.sqrt(K.sum(x * x, axis=1)), (x.shape[0], 1)), name='distances')(l0)
+        
+    # Create Output
+    #out = Dense(name = 'y')(merge_l)
+    #Create Model Instance
+    model = Model(inputs = [input1, input2], output = merge_l)
     model.compile(loss={'y': lambda y, d: K.mean(y * d)}, optimizer=SimpleSGD())
     return model
 
@@ -155,11 +158,11 @@ def apply_embedding_transformation(embeddings, positive_seeds, negative_seeds,
                                    n_epochs=5, n_dim=10, force_orthogonal=False,
                                    plot=False, plot_points=50, plot_seeds=False,
                                    **kwargs):
-    print "Preparing to learn embedding tranformation"
+    print("Preparing to learn embedding tranformation")
     dataset = DatasetMinibatchIterator(embeddings, positive_seeds, negative_seeds, **kwargs)
     model = get_model(embeddings.m.shape[1], n_dim, **kwargs)
 
-    print "Learning embedding transformation"
+    print("Learning embedding transformation")
 #    prog = util.Progbar(n_epochs)
     for epoch in range(n_epochs):
         dataset.shuffle()
@@ -173,7 +176,7 @@ def apply_embedding_transformation(embeddings, positive_seeds, negative_seeds,
 #        prog.update(epoch + 1, exact_values=[('loss', loss / dataset.y.size)])
     Q, b = model.get_weights()
     new_mat = embeddings.m.dot(Q)[:,0:n_dim]
-    #print "Orthogonality rmse", np.mean(np.sqrt(
+    #print("Orthogonality rmse", np.mean(np.sqrt()
     #    np.square(np.dot(Q, Q.T) - np.identity(Q.shape[0]))))
 
     if plot and n_dim == 2:

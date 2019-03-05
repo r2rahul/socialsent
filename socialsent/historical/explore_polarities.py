@@ -77,7 +77,7 @@ def build_boot_ztimeseries(suffix="-test", years=constants.YEARS):
             stderr_timeseries[w].append(np.std([zscore(i, polarities[w]) for i, polarities in enumerate(polarities_list)]))
     for w in mean_timeseries.keys():
         if len(mean_timeseries[w]) < 5:
-#            #print w + " is not present in all decades"
+#            #print(w + " is not present in all decades")
             del mean_timeseries[w]
             del stderr_timeseries[w]
     return mean_timeseries, stderr_timeseries
@@ -164,12 +164,12 @@ def main():
 
     xs, ys = zip(*p_vs_dp)
     pred = LinearRegression().fit(np.matrix(xs).T, ys).predict(np.matrix(xs).T)
-    print "R2 score", r2_score(ys, pred)
+    print("R2 score", r2_score(ys, pred))
 
     def onpick(event):
         for i in event.ind:
             w = ws[i]
-            print w, p_vs_dp[i]
+            print(w, p_vs_dp[i])
             plot_timeseries(timeseries, w)
             break
     figure = plt.figure()

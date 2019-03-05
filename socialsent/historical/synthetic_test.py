@@ -37,22 +37,22 @@ def worker(proc_num, queue, iter):
         try:
             year = queue.get(block=False)
         except Empty:
-            print proc_num, "Finished"
+            print(proc_num, "Finished")
             return
         np.random.seed()
         positive_seeds, negative_seeds = seeds.hist_seeds()
         year = str(year)
-        print proc_num, "On year", year
+        print(proc_num, "On year", year)
         words = vocab.pos_words(year, "ADJ")
         embed = create_representation("SVD", constants.COHA_EMBEDDINGS + year)
-        print year, len(words)
+        print(year, len(words))
         embed_words = set(embed.iw)
         words = words.intersection(embed_words)
-        print year,  len(words)
+        print(year,  len(words))
 #        counts = create_representation("Explicit", constants.COHA_COUNTS + year, normalize=False)
 #        ppmi = create_representation("Explicit", constants.COHA_PPMI + year)
         weight = _make_weight(float(year))
-        print year, weight
+        print(year, weight)
         embed = embed.get_subembed(words)
         test_embed = make_synthetic_data(embed, embed, words, weight, seed_offset=iter)
         polarities = evaluate_methods.run_method(positive_seeds, negative_seeds, 
@@ -69,22 +69,22 @@ def _make_weight(year):
 
 def make_synthetic_data(ppmi, counts, word_subset, new_weight, num_synth=10, 
         old_pos=OLD_POS, new_pos=NEW_POS, old_neg=OLD_NEG, new_neg=NEW_NEG, dim=300, seed_offset=0):
-    #print new_weight
+    #print(new_weight)
     #ppmi = ppmi.get_subembed(word_subset, restrict_context=False)
     amel_vecs = [] 
-    print "Sampling positive..."
+    print("Sampling positive...")
     for i in xrange(num_synth):
         amel_vecs.append(_sample_vec2(new_pos, old_neg, counts, new_weight, seed=i+seed_offset))
     amel_mat = vstack(amel_vecs)
     pejor_vecs = []
-    print "Sampling negative..."
+    print("Sampling negative...")
     for i in xrange(num_synth):
         pejor_vecs.append(_sample_vec2(old_pos, new_neg, counts, 1-new_weight, seed=i+num_synth+seed_offset))
     pejor_mat = vstack(pejor_vecs)
-    print "Making matrix..."
+    print("Making matrix...")
 #    ppmi_mat = vstack([ppmi.m, amel_mat, pejor_mat]) 
     u = vstack([counts.m, amel_mat, pejor_mat]) 
-    print "SVD on matrix..."
+    print("SVD on matrix...")
 #    u, s, v = randomized_svd(ppmi_mat, n_components=dim, n_iter=2)
     new_vocab = ppmi.iw
     new_vocab.extend(['a-{0:d}'.format(i) for i in range(num_synth)])
@@ -96,7 +96,7 @@ def _sample_vec2(pos_words, neg_words, counts, pos_weight, seed=1):
     np.random.seed(seed)
     pos_weights = np.random.dirichlet(np.repeat(0.1, len(pos_words)))
     pos_weights = pos_weights / np.sum(pos_weights) 
-    print pos_weights
+    print(pos_weights)
     for i, word in enumerate(pos_words): 
         sample_vec = pos_weights[i] * pos_weight * counts.represent(word)
         vec += sample_vec
@@ -114,14 +114,14 @@ def _sample_vec(pos_words, neg_words, counts, pos_weight, seed):
     np.random.seed(seed)
     pos_weights = np.random.uniform(size=len(pos_words))
     pos_weights = pos_weights / np.sum(pos_weights) 
-    print pos_weights
+    print(pos_weights)
     for i, word in enumerate(pos_words): 
         sample_vec = counts.represent(word)
         sample_vec /= float(sample_vec.sum())
         sample_vec = pos_weights[i] * pos_weight * np.random.multinomial(sample_size, sample_vec.todense().A[0])
         sample_vec = np.clip(sample_vec, 0, sample_size)
         if not np.isfinite(sample_vec.sum()):
-            print "Infinite sample with", word
+            print("Infinite sample with", word)
             continue
         vec += sample_vec
     neg_weights = np.random.uniform(size=len(neg_words))
@@ -132,7 +132,7 @@ def _sample_vec(pos_words, neg_words, counts, pos_weight, seed):
         sample_vec = neg_weights[i] * (1-pos_weight) * np.random.multinomial(sample_size, sample_vec.todense().A[0])
         sample_vec = np.clip(sample_vec, 0, sample_size)
         if not np.isfinite(sample_vec.sum()):
-            print "Infinite sample with", word
+            print("Infinite sample with", word)
             continue
         vec += sample_vec
     vec = csr_matrix(vec)
