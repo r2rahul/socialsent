@@ -7,7 +7,7 @@ import sys
 import random
 import numpy as np
 import scipy as sp
-import embedding_transformer
+from socialsent import embedding_transformer
 
 from operator import itemgetter
 from socialsent.historical import vocab
@@ -546,7 +546,7 @@ def binary_metrics(polarities, lexicon, eval_words, print_predictions=False, top
     positive = sum(ordered_labels)
     cumsum = np.cumsum(ordered_labels)
     best_accuracy = max([(1 + i - cumsum[i] + positive - cumsum[i]) / float(n) for i in range(n)])
-
+    y_true = [0 if i <= 0.5 else 1 for i in y_true]
     return best_accuracy, roc_auc_score(y_true, y_prob), average_precision_score(y_true, y_prob)
 
 def ternary_metrics(polarities, lexicon, eval_words, tau_lexicon=None):
